@@ -2,6 +2,7 @@ import { type HTMLTemplateResult, html, nothing } from 'lit';
 import { AIChatMessage } from '@microsoft/ai-chat-protocol';
 
 export type ParsedMessage = {
+  id: string; // <-- adicionar
   html: HTMLTemplateResult;
   citations: string[];
   followupQuestions: string[];
@@ -15,6 +16,7 @@ export function parseMessageIntoHtml(
 ): ParsedMessage {
   if (message.role === 'user') {
     return {
+	  id: message.id, // <-- adiciona aqui
       html: html`${message.content}`,
       citations: [],
       followupQuestions: [],
@@ -59,6 +61,7 @@ export function parseMessageIntoHtml(
   })}`;
 
   return {
+	id: message.id, // <-- e aqui também
     html: result,
     citations,
     followupQuestions,

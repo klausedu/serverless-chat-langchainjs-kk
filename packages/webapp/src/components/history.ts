@@ -428,6 +428,16 @@ export class HistoryComponent extends LitElement {
         animation: none;
       }
     }
+	.delete-button {
+  position: absolute;
+  right: 10px; /* Alinhado à direita da mensagem */
+  top: 10px; /* Posicionado no topo da mensagem */
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: red; /* Cor do botão */
+}
+
   `;
 }
 

@@ -4,7 +4,7 @@ import { repeat } from 'lit/directives/repeat.js';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 import { customElement, property, state, query } from 'lit/decorators.js';
 import { AIChatCompletionDelta, AIChatMessage } from '@microsoft/ai-chat-protocol';
-import { type ChatRequestOptions, getCitationUrl, getCompletion } from '../api.js';
+import { type ChatRequestOptions, getCitationUrl, getCompletion, deleteMessage } from '../api.js';
 import { type ParsedMessage, parseMessageIntoHtml } from '../message-parser.js';
 import sendSvg from '../../assets/send.svg?raw';
 import questionSvg from '../../assets/question.svg?raw';
@@ -110,63 +110,113 @@ export class ChatComponent extends LitElement {
     }
   }
 
-  async onSendClicked(isRetry = false) {
-    if (this.isLoading) {
-      return;
-    }
+  private generateUniqueId(): string {
+    return '_' + Math.random().toString(36).substr(2, 9); // Generate a unique ID
+  }
 
-    this.hasError = false;
-    if (!isRetry) {
-      this.messages = [
-        ...this.messages,
-        {
-          content: this.question,
-          role: 'user',
-        },
-      ];
-    }
+// Adicione estes logs no método onSendClicked (após criar a mensagem do usuário):
 
-    this.question = '';
-    this.isLoading = true;
-    this.scrollToLastMessage();
-    try {
-      const response = getCompletion({
-        ...this.options,
-        messages: this.messages,
-        context: {
-          userId: this.userId,
-          sessionId: this.sessionId,
-        },
-      });
-      const chunks = response as AsyncGenerator<AIChatCompletionDelta>;
-      const { messages } = this;
-      const message: AIChatMessage = {
-        content: '',
-        role: 'assistant',
-      };
-      for await (const chunk of chunks) {
-        if (chunk.delta.content) {
-          this.isStreaming = true;
-          message.content += chunk.delta.content;
-          this.messages = [...messages, message];
-        }
+async onSendClicked(isRetry = false) {
+  if (this.isLoading) {
+    return;
+  }
 
-        const sessionId = (chunk.context as any)?.sessionId;
-        if (!this.sessionId && sessionId) {
-          this.sessionId = sessionId;
-        }
+  this.hasError = false;
+  const messageId = this.generateUniqueId();
+
+  if (!isRetry) {
+    const userMessage = {
+      id: messageId,
+      content: this.question,
+      role: 'user',
+    };
+    
+    console.log('=== CREATING USER MESSAGE ===');
+    console.log('Generated ID:', messageId);
+    console.log('User message:', JSON.stringify(userMessage, null, 2));
+    
+    this.messages = [...this.messages, userMessage];
+  }
+
+  this.question = '';
+  this.isLoading = true;
+  this.scrollToLastMessage();
+  
+  try {
+    const response = getCompletion({
+      ...this.options,
+      messages: this.messages,
+      context: {
+        userId: this.userId,
+        sessionId: this.sessionId,
+      },
+    });
+    
+    const chunks = response as AsyncGenerator<AIChatCompletionDelta>;
+    
+    const assistantMessageId = this.generateUniqueId();
+    const assistantMessage: AIChatMessage = {
+      id: assistantMessageId,
+      content: '',
+      role: 'assistant',
+    };
+    
+    console.log('=== CREATING ASSISTANT MESSAGE ===');
+    console.log('Generated assistant ID:', assistantMessageId);
+    console.log('Assistant message initial:', JSON.stringify(assistantMessage, null, 2));
+    
+    this.messages = [...this.messages, assistantMessage];
+    const assistantMessageIndex = this.messages.length - 1;
+
+    for await (const chunk of chunks) {
+      if (chunk.delta.content) {
+        this.isStreaming = true;
+        assistantMessage.content += chunk.delta.content;
+        
+        const updatedMessages = [...this.messages];
+        updatedMessages[assistantMessageIndex] = { ...assistantMessage };
+        this.messages = updatedMessages;
+        
+        this.scrollToLastMessage();
       }
 
-      this.isLoading = false;
-      this.isStreaming = false;
-      this.fireMessagesUpdatedEvent();
-    } catch (error) {
-      this.hasError = true;
-      this.isLoading = false;
-      this.isStreaming = false;
-      console.error(error);
+      const sessionId = (chunk.context as any)?.sessionId;
+      if (!this.sessionId && sessionId) {
+        this.sessionId = sessionId;
+      }
+      
+      // LOG IMPORTANT: Check if backend is sending different IDs
+      if (chunk.id || chunk.messageId || (chunk.context as any)?.messageId) {
+        console.log('=== CHUNK ID DEBUG ===');
+        console.log('Chunk ID:', chunk.id);
+        console.log('Chunk messageId:', chunk.messageId);
+        console.log('Context messageId:', (chunk.context as any)?.messageId);
+        console.log('Our assistant ID:', assistantMessageId);
+      }
     }
+
+    console.log('=== FINAL MESSAGES AFTER STREAMING ===');
+    this.messages.forEach((msg, index) => {
+      console.log(`Message ${index}:`, {
+        id: msg.id,
+        messageId: msg.additional_kwargs?.messageId,
+        role: msg.role,
+        contentLength: msg.content?.length || 0
+      });
+    });
+
+    this.isLoading = false;
+    this.isStreaming = false;
+    this.fireMessagesUpdatedEvent();
+    
+  } catch (error) {
+    this.hasError = true;
+    this.isLoading = false;
+    this.isStreaming = false;
+    console.error(error);
   }
+}
+
 
   override requestUpdate(name?: string, oldValue?: any) {
     if (name === 'messages') {
@@ -196,7 +246,6 @@ export class ChatComponent extends LitElement {
   }
 
   protected scrollToLastMessage() {
-    // Need to be delayed to run after the DOM refresh
     setTimeout(() => {
       const { bottom } = this.messagesElement.getBoundingClientRect();
       const { top } = this.chatInputElement.getBoundingClientRect();
@@ -239,25 +288,105 @@ export class ChatComponent extends LitElement {
         `
       : nothing;
 
-  protected renderMessage = (message: ParsedMessage) => html`
+
+protected renderMessage = (message: ParsedMessage, index: number) => {
+  const originalMessage = this.messages[index];
+  const messageId = originalMessage?.additional_kwargs?.messageId || originalMessage?.id;
+  
+  console.log('=== RENDER MESSAGE DEBUG ===');
+  console.log('Index:', index);
+  console.log('Original message full object:', JSON.stringify(originalMessage, null, 2));
+  console.log('Available IDs:');
+  console.log('  - originalMessage.id:', originalMessage?.id);
+  console.log('  - originalMessage.additional_kwargs?.messageId:', originalMessage?.additional_kwargs?.messageId);
+  console.log('  - Final messageId chosen:', messageId);
+  console.log('Message role:', message.role);
+  
+  return html`
     <div class="message ${message.role} animation">
-      ${message.role === 'assistant' ? html`<slot name="message-header"></slot>` : nothing}
       <div class="message-body">
         <div class="content">${message.html}</div>
-        ${message.citations.length > 0
-          ? html`
-              <div class="citations">
-                <div class="citations-title">${this.options.strings.citationsTitle}</div>
-                ${map(message.citations, this.renderCitation)}
-              </div>
-            `
-          : nothing}
       </div>
       <div class="message-role">
         ${message.role === 'user' ? this.options.strings.user : this.options.strings.assistant}
       </div>
+      <button class="delete-button" 
+        @click=${() => {
+          console.log("=== DELETE BUTTON CLICKED ===");
+          console.log("Message index:", index);
+          console.log("Message ID being passed:", messageId);
+          console.log("Original message at deletion:", JSON.stringify(originalMessage, null, 2));
+          console.log("Session ID:", this.sessionId);
+          console.log("User ID:", this.userId);
+          console.log("API URL:", this.options.apiUrl);
+          
+          if (!messageId) {
+            console.error("❌ MESSAGE ID IS UNDEFINED!");
+            alert("Cannot delete message: ID is undefined");
+            return;
+          }
+          
+          this.onDeleteMessage(messageId);
+        }}>✖️</button>
     </div>
   `;
+};
+
+
+
+
+private async onDeleteMessage(messageId: string) {
+  console.log("Message ID received:", messageId);
+  console.log("Current Messages:", JSON.stringify(this.messages, null, 2));
+
+  // Ensure the ID is defined
+  if (!messageId) {
+    console.warn("Message ID is undefined");
+    return;
+  }
+
+  // Ensure sessionId exists
+  if (!this.sessionId) {
+    console.warn("Session ID is required for message deletion");
+    return;
+  }
+
+  // Ensure userId exists
+  if (!this.userId) {
+    console.warn("User ID is required for message deletion");
+    alert("User ID is missing. Please refresh the page and try again.");
+    return;
+  }
+
+  console.log(`Deleting message ${messageId} from session ${this.sessionId} for user ${this.userId}`);
+
+  // Update the state to remove the message immediately for responsive UI
+  this.messages = this.messages.filter((msg) => {
+    const msgId = msg.additional_kwargs?.messageId || msg.id;
+    return msgId !== messageId;
+  });
+
+  console.log('Remaining Messages after deletion:', JSON.stringify(this.messages, null, 2));
+
+  // Fire the messages updated event
+  this.fireMessagesUpdatedEvent();
+
+  // Call the backend API to persist the deletion
+  try {
+    await deleteMessage(messageId, this.sessionId, this.userId, this.options.apiUrl);
+    console.log('Message successfully deleted from backend');
+  } catch (error) {
+    console.error('Failed to delete message from backend:', error);
+    
+    // Show error to user
+    alert(`Failed to delete message: ${error.message || error}`);
+    
+    // Optionally, you could revert the frontend state here if the backend call fails
+    // For now, we'll keep the optimistic update approach since the message is already gone from UI
+  }
+}
+
+
 
   protected renderError = () => html`
     <div class="message assistant error">
@@ -277,8 +406,6 @@ export class ChatComponent extends LitElement {
     >
       ${index + 1}. ${citation}
     </button>`;
-
-  protected renderCitationReference = (_citation: string, index: number) => html`<sup>[${index}]</sup>`;
 
   protected renderFollowupQuestions = (questions: string[]) =>
     questions.length > 0
@@ -339,8 +466,13 @@ export class ChatComponent extends LitElement {
     </div>
   `;
 
-  protected override render() {
-    const parsedMessages = this.messages.map((message) => parseMessageIntoHtml(message, this.renderCitationReference));
+protected override render() {
+    console.log('Current messages:', JSON.stringify(this.messages, null, 2));
+    const parsedMessages = this.messages.map((message) => {
+        console.log('Message object:', JSON.stringify(message, null, 2));
+        return parseMessageIntoHtml(message, this.renderCitation);
+    });
+    
     return html`
       <section class="chat-container">
         ${this.options.enablePromptSuggestions &&
@@ -349,14 +481,19 @@ export class ChatComponent extends LitElement {
           ? this.renderSuggestions(this.options.promptSuggestions)
           : nothing}
         <div class="messages">
-          ${repeat(parsedMessages, (_, index) => index, this.renderMessage)} ${this.renderLoader()}
+          ${repeat(
+            parsedMessages, 
+            (_, index) => index, 
+            (parsedMessage, index) => this.renderMessage(parsedMessage, index)
+          )}
+          ${this.renderLoader()}
           ${this.hasError ? this.renderError() : nothing}
           ${this.renderFollowupQuestions(parsedMessages.at(-1)?.followupQuestions ?? [])}
         </div>
         ${this.renderChatInput()}
       </section>
     `;
-  }
+}
 
   static override styles = css`
     :host {
@@ -720,6 +857,15 @@ export class ChatComponent extends LitElement {
       .animation {
         animation: none;
       }
+    }
+    .delete-button {
+      position: absolute;
+      right: 10px;
+      top: 10px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: red; /* Color for the delete button */
     }
   `;
 }
