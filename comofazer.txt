@@ -1,0 +1,67 @@
+1. Verifique os remotes atuais
+No terminal dentro do projeto:
+
+bash
+Copy
+Edit
+git remote -v
+Você deve ver algo como:
+
+perl
+Copy
+Edit
+origin  https://github.com/outro-usuario/repositorio-publico.git (fetch)
+origin  https://github.com/outro-usuario/repositorio-publico.git (push)
+2. Adicione seu repositório privado como origin
+Se ainda não tiver criado, crie um repositório privado no GitHub.
+Depois, adicione-o como origin ou renomeie o remoto atual:
+
+bash
+Copy
+Edit
+git remote rename origin upstream  # renomeia o remoto original para "upstream"
+git remote add origin https://github.com/SeuUsuario/repositorio-privado.git
+Agora:
+
+upstream → repositório original público
+
+origin → seu repositório privado
+
+3. Verifique os remotes
+bash
+Copy
+Edit
+git remote -v
+Deve mostrar algo como:
+
+bash
+Copy
+Edit
+origin    https://github.com/SeuUsuario/repositorio-privado.git (fetch)
+origin    https://github.com/SeuUsuario/repositorio-privado.git (push)
+upstream  https://github.com/outro-usuario/repositorio-publico.git (fetch)
+upstream  https://github.com/outro-usuario/repositorio-publico.git (push)
+4. Faça commit das suas alterações
+bash
+Copy
+Edit
+git add .
+git commit -m "Minhas alterações"
+5. Envie para seu repositório privado
+bash
+Copy
+Edit
+git push -u origin main
+Substitua main pela branch que estiver usando.
+
+6. Manter atualizações do repositório original
+Se quiser puxar atualizações do original depois:
+
+bash
+Copy
+Edit
+git fetch upstream
+git merge upstream/main
+Ou usar git rebase upstream/main se preferir histórico linear.
+
+Isso mantém seu fork privado atualizado com o projeto original.
