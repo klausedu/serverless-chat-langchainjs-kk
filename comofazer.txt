@@ -65,3 +65,63 @@ git merge upstream/main
 Ou usar git rebase upstream/main se preferir histórico linear.
 
 Isso mantém seu fork privado atualizado com o projeto original.
+
+
+______________________________________________________________________
+
+quando altero localmente, como levo pro git?
+
+
+ChatGPT said:
+Quando você altera arquivos localmente e quer enviar essas mudanças para o Git (GitHub, GitLab, etc.), você precisa seguir o fluxo básico do Git:
+
+1. Verificar o status dos arquivos
+Mostra quais arquivos foram modificados, adicionados ou deletados:
+
+bash
+Copy
+Edit
+git status
+2. Adicionar arquivos para “staging”
+Escolha o que quer incluir no próximo commit. Para todos os arquivos:
+
+bash
+Copy
+Edit
+git add .
+Ou para arquivos específicos:
+
+bash
+Copy
+Edit
+git add caminho/do/arquivo.ts
+3. Criar um commit
+Registra suas alterações localmente com uma mensagem explicativa:
+
+bash
+Copy
+Edit
+git commit -m "Descreva suas alterações aqui"
+4. Enviar para o repositório remoto
+Se a branch que você quer atualizar é main e o remoto é origin:
+
+bash
+Copy
+Edit
+git push origin main
+Se for a primeira vez que envia a branch:
+
+bash
+Copy
+Edit
+git push -u origin main
+Depois, nos próximos commits, só git push basta.
+
+Resumo rápido
+bash
+Copy
+Edit
+git status
+git add .
+git commit -m "Minhas alterações"
+git push origin main
