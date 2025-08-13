@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Interativo: Rochas e Minerais</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f8ff;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1, h2 {
+            color: #0056b3;
+            text-align: center;
+        }
+        .quiz-container {
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .question {
+            margin-bottom: 20px;
+            font-size: 1.1em;
+        }
+        input[type="text"] {
+            border: 2px solid #ccc;
+            border-radius: 5px;
+            padding: 8px;
+            font-size: 1em;
+            margin: 0 5px;
+            transition: all 0.3s ease;
+            width: 150px;
+        }
+        input[type="text"]:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+        .correct {
+            border-color: #28a745;
+            background-color: #e9f7ef;
+        }
+        .incorrect {
+            border-color: #dc3545;
+            background-color: #fce8e6;
+        }
+        .feedback {
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .feedback.correct-feedback {
+            color: #28a745;
+        }
+        .feedback.incorrect-feedback {
+            color: #dc3545;
+        }
+        .button-container {
+            text-align: center;
+            margin-top: 30px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 1.1em;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin: 0 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #results {
+            text-align: center;
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-top: 25px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none; /* Escondido por padrão */
+        }
+        #results.success {
+            background-color: #e9f7ef;
+            color: #28a745;
+        }
+        #results.fail {
+            background-color: #fce8e6;
+            color: #dc3545;
+        }
+        /* Responsividade */
+        @media (max-width: 600px) {
+            .question {
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            input[type="text"] {
+                width: calc(100% - 20px);
+                margin-top: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Quiz de Ciências 🌋</h1>
+    <h2>Estudando Rochas e Minerais</h2>
+
+    <div class="quiz-container">
+        <p>Preencha os espaços em branco com as palavras corretas, com base nos seus estudos. Não se preocupe com letras maiúsculas ou acentos!</p>
+        <hr>
+
+        <form id="quizForm">
+            <div class="question">
+                1. A crosta terrestre é formada principalmente por <input type="text" id="q1a" data-answer="rochas">, que são compostas de um ou mais <input type="text" id="q1b" data-answer="minerais">.
+                <span id="feedback-q1" class="feedback"></span>
+            </div>
+
+            <div class="question">
+                2. Os minerais que têm importância econômica para a sociedade são chamados de <input type="text" id="q2" data-answer="minerios">.
+                <span id="feedback-q2" class="feedback"></span>
+            </div>
+
+            <div class="question">
+                3. De acordo com a origem, as rochas são classificadas em <input type="text" id="q3a" data-answer="igneas">, <input type="text" id="q3b" data-answer="sedimentares"> e <input type="text" id="q3c" data-answer="metamorficas">.
+                <span id="feedback-q3" class="feedback"></span>
+            </div>
+            
+            <div class="question">
+                4. As rochas ígneas também são conhecidas como rochas <input type="text" id="q4" data-answer="magmaticas">.
+                <span id="feedback-q4" class="feedback"></span>
+            </div>
+
+            <div class="question">
+                5. Rochas ígneas que se formam na superfície, a partir da lava, são as <input type="text" id="q5" data-answer="vulcanicas">. Já as que se formam lentamente abaixo da superfície são as <input type="text" id="q6" data-answer="plutonicas">.
+                <span id="feedback-q5" class="feedback"></span>
+            </div>
+            
+            <div class="question">
+                6. As rochas sedimentares são formadas pelo acúmulo e compactação de <input type="text" id="q7" data-answer="sedimentos">.
+                <span id="feedback-q7" class="feedback"></span>
+            </div>
+            
+            <div class="question">
+                7. As rochas sedimentares podem conter vestígios de seres vivos muito antigos, que são chamados de <input type="text" id="q8" data-answer="fosseis">.
+                <span id="feedback-q8" class="feedback"></span>
+            </div>
+
+            <div class="question">
+                8. As rochas <input type="text" id="q9" data-answer="metamorficas"> surgem a partir da <input type="text" id="q10" data-answer="transformacao"> de outras rochas, por causa de altas pressões e temperaturas.
+                <span id="feedback-q9" class="feedback"></span>
+            </div>
+
+            <div class="question">
+                9. O granito é uma rocha <input type="text" id="q11" data-answer="ignea">. Quando ele sofre uma transformação, pode se tornar um <input type="text" id="q12" data-answer="gnaisse"> (uma rocha metamórfica).
+                <span id="feedback-q11" class="feedback"></span>
+            </div>
+            
+             <div class="question">
+                10. A <input type="text" id="q13" data-answer="ardosia"> e o <input type="text" id="q14" data-answer="marmore"> são outros exemplos de rochas metamórficas.
+                <span id="feedback-q13" class="feedback"></span>
+            </div>
+
+        </form>
+        
+        <div id="results"></div>
+
+        <div class="button-container">
+            <button type="button" onclick="checkAnswers()">Verificar Respostas</button>
+            <button type="button" onclick="resetQuiz()">Tentar de Novo</button>
+        </div>
+    </div>
+
+<script>
+    function normalizeAnswer(str) {
+        if (!str) return '';
+        return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+    }
+
+    function checkAnswers() {
+        const inputs = document.querySelectorAll('#quizForm input[type="text"]');
+        let score = 0;
+        let total = 0;
+
+        // Limpar feedback anterior
+        document.querySelectorAll('.feedback').forEach(el => el.textContent = '');
+
+        const checkSingleInput = (id) => {
+            const input = document.getElementById(id);
+            const userAnswer = normalizeAnswer(input.value);
+            const correctAnswer = input.dataset.answer;
+            total++;
+            input.classList.remove('correct', 'incorrect');
+            if (userAnswer === correctAnswer) {
+                input.classList.add('correct');
+                score++;
+                return true;
+            } else {
+                input.classList.add('incorrect');
+                return false;
+            }
+        };
+        
+        const showFeedback = (feedbackId, isCorrect, correctAnswers) => {
+             const feedbackEl = document.getElementById(feedbackId);
+             feedbackEl.classList.remove('correct-feedback', 'incorrect-feedback');
+             if(isCorrect) {
+                 feedbackEl.textContent = '✔️ Correto!';
+                 feedbackEl.classList.add('correct-feedback');
+             } else {
+                 feedbackEl.textContent = `❌ Incorreto. Resposta(s): ${correctAnswers}`;
+                 feedbackEl.classList.add('incorrect-feedback');
+             }
+        };
+
+        // Questão 1
+        const q1a_correct = checkSingleInput('q1a');
+        const q1b_correct = checkSingleInput('q1b');
+        showFeedback('feedback-q1', q1a_correct && q1b_correct, 'rochas, minerais');
+
+        // Questão 2
+        showFeedback('feedback-q2', checkSingleInput('q2'), 'minérios');
+
+        // Questão 3 - Respostas podem estar em qualquer ordem
+        const q3_answers = ['igneas', 'sedimentares', 'metamorficas'];
+        const q3_user_answers = [
+            normalizeAnswer(document.getElementById('q3a').value),
+            normalizeAnswer(document.getElementById('q3b').value),
+            normalizeAnswer(document.getElementById('q3c').value)
+        ].sort();
+        total += 3;
+        let q3_correct_count = 0;
+        ['q3a', 'q3b', 'q3c'].forEach(id => {
+            const input = document.getElementById(id);
+            input.classList.remove('correct', 'incorrect');
+            if (q3_answers.includes(normalizeAnswer(input.value))) {
+                input.classList.add('correct');
+                q3_correct_count++;
+            } else {
+                input.classList.add('incorrect');
+            }
+        });
+        score += q3_correct_count;
+        showFeedback('feedback-q3', q3_correct_count === 3, 'ígneas, sedimentares, metamórficas');
+        
+        // Questão 4
+        showFeedback('feedback-q4', checkSingleInput('q4'), 'magmáticas');
+        
+        // Questão 5
+        const q5_correct = checkSingleInput('q5');
+        const q6_correct = checkSingleInput('q6');
+        showFeedback('feedback-q5', q5_correct && q6_correct, 'vulcânicas, plutônicas');
+        
+        // Questão 6
+        showFeedback('feedback-q6', checkSingleInput('q7'), 'sedimentos');
+        
+        // Questão 7
+        showFeedback('feedback-q7', checkSingleInput('q8'), 'fósseis');
+        
+        // Questão 8
+        const q9_correct = checkSingleInput('q9');
+        const q10_correct = checkSingleInput('q10');
+        showFeedback('feedback-q9', q9_correct && q10_correct, 'metamórficas, transformação');
+        
+        // Questão 9
+        const q11_correct = checkSingleInput('q11');
+        const q12_correct = checkSingleInput('q12');
+        showFeedback('feedback-q11', q11_correct && q12_correct, 'ígnea, gnaisse');
+
+        // Questão 10
+        const q13_correct = checkSingleInput('q13');
+        const q14_correct = checkSingleInput('q14');
+        showFeedback('feedback-q13', q13_correct && q14_correct, 'ardósia, mármore');
+        
+        // Atualizar total para refletir a contagem correta
+        total = 14; // Número total de caixas de texto
+
+        // Exibir resultados
+        const resultsEl = document.getElementById('results');
+        resultsEl.style.display = 'block';
+        resultsEl.classList.remove('success', 'fail');
+        
+        const percentage = total > 0 ? (score / total) * 100 : 0;
+        
+        if (percentage >= 70) {
+            resultsEl.textContent = `Parabéns! Você acertou ${score} de ${total} (${percentage.toFixed(0)}%). Você está mandando bem!`;
+            resultsEl.classList.add('success');
+        } else {
+            resultsEl.textContent = `Continue estudando! Você acertou ${score} de ${total} (${percentage.toFixed(0)}%). Tente de novo!`;
+            resultsEl.classList.add('fail');
+        }
+    }
+
+    function resetQuiz() {
+        document.getElementById('quizForm').reset();
+        document.querySelectorAll('input[type="text"]').forEach(input => {
+            input.classList.remove('correct', 'incorrect');
+        });
+        document.querySelectorAll('.feedback').forEach(el => {
+            el.textContent = '';
+        });
+        const resultsEl = document.getElementById('results');
+        resultsEl.style.display = 'none';
+        resultsEl.textContent = '';
+    }
+</script>
+
+</body>
+</html>
+
