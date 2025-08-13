@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Interativo: O Planeta Terra</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f2f2f7;
+            color: #1c1c1e;
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1, h2 {
+            color: #0a84ff;
+            text-align: center;
+        }
+        .quiz-container {
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .question {
+            margin-bottom: 22px;
+            font-size: 1.1em;
+        }
+        input[type="text"] {
+            border: 2px solid #d1d1d6;
+            border-radius: 6px;
+            padding: 8px;
+            font-size: 1em;
+            margin: 0 5px;
+            transition: all 0.3s ease;
+            width: 160px;
+        }
+        input[type="text"]:focus {
+            border-color: #0a84ff;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.2);
+        }
+        .correct {
+            border-color: #30d158;
+            background-color: #e5f8e9;
+        }
+        .incorrect {
+            border-color: #ff453a;
+            background-color: #ffebee;
+        }
+        .feedback {
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .feedback.correct-feedback {
+            color: #30d158;
+        }
+        .feedback.incorrect-feedback {
+            color: #ff453a;
+        }
+        .button-container {
+            text-align: center;
+            margin-top: 30px;
+        }
+        button {
+            background-color: #0a84ff;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 1.1em;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin: 0 10px;
+        }
+        button:hover {
+            background-color: #0060df;
+        }
+        #results {
+            text-align: center;
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-top: 25px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none; /* Escondido por padrão */
+        }
+        #results.success {
+            background-color: #e5f8e9;
+            color: #30d158;
+        }
+        #results.fail {
+            background-color: #ffebee;
+            color: #ff453a;
+        }
+        /* Responsividade */
+        @media (max-width: 600px) {
+            .question {
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            input[type="text"] {
+                width: calc(100% - 20px);
+                margin-top: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Quiz de Ciências 🌎</h1>
+    <h2>O Formato da Terra e o Universo</h2>
+
+    <div class="quiz-container">
+        <p>Complete as frases com as informações que você aprendeu. Lembre-se que o sistema não diferencia maiúsculas, minúsculas ou acentos. Boa sorte!</p>
+        <hr>
+
+        <form id="quizForm">
+            <div class="question">
+                1. Atualmente, sabemos que o formato do nosso planeta é aproximadamente <input type="text" id="q1" data-answer="esferico">.
+                <span id="feedback-q1" class="feedback"></span>
+            </div>
+
+            <div class="question">
+                2. A Terra é levemente achatada nos <input type="text" id="q2" data-answer="polos">.
+                <span id="feedback-q2" class="feedback"></span>
+            </div>
+
+            <div class="question">
+                3. Há cerca de 2.200 anos, o matemático grego <input type="text" id="q3" data-answer="eratostenes"> calculou a circunferência da Terra usando varetas e a diferença da <input type="text" id="q4" data-answer="sombra"> projetada por elas.
+                <span id="feedback-q3" class="feedback"></span>
+            </div>
+
+            <div class="question">
+                4. A montanha com a maior altitude do planeta é o <input type="text" id="q5" data-answer="monte everest">.
+                <span id="feedback-q5" class="feedback"></span>
+            </div>
+
+            <div class="question">
+                5. O astronauta <input type="text" id="q6" data-answer="neil armstrong"> foi o primeiro ser humano a pisar na Lua, no ano de <input type="text" id="q7" data-answer="1969">.
+                <span id="feedback-q6" class="feedback"></span>
+            </div>
+
+            <div class="question">
+                6. Ao observar a Terra da Lua, esse astronauta disse ter se sentido muito, muito <input type="text" id="q8" data-answer="pequeno">.
+                <span id="feedback-q8" class="feedback"></span>
+            </div>
+            
+            <div class="question">
+                7. A famosa foto do "Pálido Ponto Azul" foi tirada pela sonda <input type="text" id="q9" data-answer="voyager 1"> em 1990.
+                <span id="feedback-q9" class="feedback"></span>
+            </div>
+
+            <div class="question">
+                8. Um disco de gás e poeira ao redor de uma estrela jovem, onde planetas podem se formar, é chamado de disco <input type="text" id="q10" data-answer="protoplanetario">.
+                <span id="feedback-q10" class="feedback"></span>
+            </div>
+
+            <div class="question">
+                9. No Hemisfério Sul, podemos ver a constelação do <input type="text" id="q11" data-answer="cruzeiro do sul">, que não é visível no Hemisfério Norte.
+                <span id="feedback-q11" class="feedback"></span>
+            </div>
+
+        </form>
+        
+        <div id="results"></div>
+
+        <div class="button-container">
+            <button type="button" onclick="checkAnswers()">Corrigir Quiz</button>
+            <button type="button" onclick="resetQuiz()">Refazer</button>
+        </div>
+    </div>
+
+<script>
+    function normalizeAnswer(str) {
+        if (!str) return '';
+        return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+    }
+
+    function checkAnswers() {
+        let score = 0;
+        const inputs = document.querySelectorAll('#quizForm input[type="text"]');
+        const total = inputs.length;
+
+        document.querySelectorAll('.feedback').forEach(el => el.textContent = '');
+
+        const checkAndShowFeedback = (inputId, feedbackId, correctAnswers) => {
+            const input = document.getElementById(inputId);
+            const userAnswer = normalizeAnswer(input.value);
+            const isCorrect = correctAnswers.split(',').map(normalizeAnswer).includes(userAnswer);
+
+            input.classList.remove('correct', 'incorrect');
+            const feedbackEl = document.getElementById(feedbackId);
+            feedbackEl.classList.remove('correct-feedback', 'incorrect-feedback');
+
+            if (isCorrect) {
+                input.classList.add('correct');
+                if (feedbackEl) {
+                    feedbackEl.textContent = '✔️ Certo!';
+                    feedbackEl.classList.add('correct-feedback');
+                }
+                return true;
+            } else {
+                input.classList.add('incorrect');
+                if (feedbackEl) {
+                    feedbackEl.textContent = `❌ Errado. Resposta: ${correctAnswers}`;
+                    feedbackEl.classList.add('incorrect-feedback');
+                }
+                return false;
+            }
+        };
+
+        const checkGroupFeedback = (inputIds, feedbackId, correctAnswers) => {
+            let allCorrect = true;
+            for(let i = 0; i < inputIds.length; i++){
+                const input = document.getElementById(inputIds[i]);
+                const userAnswer = normalizeAnswer(input.value);
+                const correctAns = normalizeAnswer(correctAnswers[i]);
+                input.classList.remove('correct', 'incorrect');
+                if(userAnswer === correctAns){
+                    input.classList.add('correct');
+                    score++;
+                } else {
+                    input.classList.add('incorrect');
+                    allCorrect = false;
+                }
+            }
+
+            const feedbackEl = document.getElementById(feedbackId);
+            feedbackEl.classList.remove('correct-feedback', 'incorrect-feedback');
+            if(allCorrect){
+                feedbackEl.textContent = '✔️ Perfeito!';
+                feedbackEl.classList.add('correct-feedback');
+            } else {
+                feedbackEl.textContent = `❌ Incorreto. Respostas: ${correctAnswers.join(', ')}`;
+                feedbackEl.classList.add('incorrect-feedback');
+            }
+        };
+        
+        // Single answer questions
+        if(checkAndShowFeedback('q1', 'feedback-q1', 'esferico,esferica')) score++;
+        if(checkAndShowFeedback('q2', 'feedback-q2', 'polos')) score++;
+        if(checkAndShowFeedback('q5', 'feedback-q5', 'monte everest')) score++;
+        if(checkAndShowFeedback('q8', 'feedback-q8', 'pequeno')) score++;
+        if(checkAndShowFeedback('q9', 'feedback-q9', 'voyager 1')) score++;
+        if(checkAndShowFeedback('q10', 'feedback-q10', 'protoplanetario')) score++;
+        if(checkAndShowFeedback('q11', 'feedback-q11', 'cruzeiro do sul')) score++;
+
+        // Multi-input questions
+        checkGroupFeedback(['q3', 'q4'], 'feedback-q3', ['eratostenes', 'sombra']);
+        checkGroupFeedback(['q6', 'q7'], 'feedback-q6', ['neil armstrong', '1969']);
+
+        // Exibir resultados
+        const resultsEl = document.getElementById('results');
+        resultsEl.style.display = 'block';
+        resultsEl.classList.remove('success', 'fail');
+        
+        const percentage = total > 0 ? (score / total) * 100 : 0;
+        
+        if (percentage >= 70) {
+            resultsEl.textContent = `Excelente! Você acertou ${score} de ${total} (${percentage.toFixed(0)}%). Continue assim!`;
+            resultsEl.classList.add('success');
+        } else {
+            resultsEl.textContent = `Não desista! Você acertou ${score} de ${total} (${percentage.toFixed(0)}%). Reveja o material e tente de novo!`;
+            resultsEl.classList.add('fail');
+        }
+    }
+
+    function resetQuiz() {
+        document.getElementById('quizForm').reset();
+        document.querySelectorAll('input[type="text"]').forEach(input => {
+            input.classList.remove('correct', 'incorrect');
+        });
+        document.querySelectorAll('.feedback').forEach(el => {
+            el.textContent = '';
+        });
+        const resultsEl = document.getElementById('results');
+        resultsEl.style.display = 'none';
+        resultsEl.textContent = '';
+    }
+</script>
+
+</body>
+</html>
+
