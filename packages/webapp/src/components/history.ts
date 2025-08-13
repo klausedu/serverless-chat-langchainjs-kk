@@ -67,26 +67,53 @@ export class HistoryComponent extends LitElement {
     this.open = !this.open;
   }
 
-  async onChatClicked(sessionId: string) {
-    try {
-      this.isLoading = true;
-      const response = await fetch(`${this.getApiUrl()}/api/chats/${sessionId}/?userId=${this.userId}`);
-      const messages = await response.json();
-      const loadSessionEvent = new CustomEvent('loadSession', {
-        detail: { id: sessionId, messages },
-        bubbles: true,
-      });
-      this.dispatchEvent(loadSessionEvent);
+// Atualize o método onChatClicked no history.ts:
 
-      if (!isLargeScreen()) {
-        this.open = false;
-      }
-    } catch (error) {
-      console.error(error);
+async onChatClicked(sessionId: string) {
+  try {
+    this.isLoading = true;
+    const response = await fetch(`${this.getApiUrl()}/api/chats/${sessionId}/?userId=${this.userId}`);
+    const messages = await response.json();
+    
+    console.log('=== LOADING MESSAGES FROM HISTORY ===');
+    console.log('Raw messages from API:', messages);
+    
+    // Processar mensagens para garantir IDs consistentes
+    const processedMessages = messages.map((msg: any, index: number) => {
+      console.log(`Processing message ${index}:`, msg);
+      
+      // Mapear a estrutura da API para a estrutura esperada pelo frontend
+      const processedMsg = {
+        id: msg.id || msg.messageId || `history_${index}_${Date.now()}`,
+        content: msg.content || '',
+        role: msg.role || (msg.type === 'human' ? 'user' : 'assistant'),
+        additional_kwargs: {
+          messageId: msg.id || msg.messageId || `history_${index}_${Date.now()}`,
+          ...(msg.additional_kwargs || {})
+        }
+      };
+      
+      console.log(`Processed message ${index}:`, processedMsg);
+      return processedMsg;
+    });
+    
+    console.log('Final processed messages:', processedMessages);
+    
+    const loadSessionEvent = new CustomEvent('loadSession', {
+      detail: { id: sessionId, messages: processedMessages },
+      bubbles: true,
+    });
+    this.dispatchEvent(loadSessionEvent);
+
+    if (!isLargeScreen()) {
+      this.open = false;
     }
-
-    this.isLoading = false;
+  } catch (error) {
+    console.error('Error loading session:', error);
   }
+
+  this.isLoading = false;
+}
 
   async onDeleteChatClicked(sessionId: string) {
     try {

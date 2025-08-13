@@ -60,7 +60,7 @@ async function deleteChats(request: HttpRequest, context: InvocationContext): Pr
   }
 }
 
-// Substitua a função deleteMessage inteira por esta versão melhorada:
+// Substitua a função deleteMessage inteira por esta versão corrigida:
 
 export async function deleteMessage(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   const azureCosmosDbEndpoint = process.env.AZURE_COSMOSDB_NOSQL_ENDPOINT;
@@ -155,6 +155,10 @@ export async function deleteMessage(request: HttpRequest, context: InvocationCon
       context.log('No messages found in session');
       return badRequest('No messages found in the specified session');
     }
+
+    // CORREÇÃO 1: Preservar o contexto da sessão (incluindo title) ANTES de fazer qualquer operação
+    const sessionContext = await chatHistory.getContext();
+    context.log(`Session context before deletion: ${JSON.stringify(sessionContext, null, 2)}`);
     
     // Log all message IDs for debugging
     context.log('Current message IDs in session:');
@@ -184,33 +188,39 @@ export async function deleteMessage(request: HttpRequest, context: InvocationCon
     
     context.log(`Messages before deletion: ${messages.length}, after: ${filteredMessages.length}`);
 
-    // IMPROVED APPROACH: Preserve all session metadata
+    // CORREÇÃO 2: Preservar todos os metadados da sessão durante a operação
     context.log('Preserving session metadata during message deletion...');
     
-    // Extract session metadata from existing messages
-    let sessionMetadata = {};
-    const firstMessage = messages[0];
-    if (firstMessage && firstMessage.additional_kwargs) {
-      // Preserve session-level metadata
-      sessionMetadata = {
-        title: firstMessage.additional_kwargs.title,
-        sessionId: firstMessage.additional_kwargs.sessionId || sessionId,
-        userId: firstMessage.additional_kwargs.userId || userId,
-        createdAt: firstMessage.additional_kwargs.createdAt,
-        updatedAt: new Date().toISOString(),
-        // Preserve any other metadata fields
-        ...Object.fromEntries(
-          Object.entries(firstMessage.additional_kwargs)
-            .filter(([key]) => !['messageId', 'content', 'role'].includes(key))
-        )
-      };
-      context.log(`Extracted session metadata: ${JSON.stringify(sessionMetadata, null, 2)}`);
+    // Extract session metadata from existing messages AND context
+    let sessionMetadata = {
+      // Primeiro, preserve o contexto da sessão
+      ...sessionContext,
+      // Depois, extraia metadados das mensagens se necessário
+      sessionId,
+      userId,
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Se não temos título no contexto, tente extrair da primeira mensagem
+    if (!sessionMetadata.title && messages.length > 0) {
+      const firstMessage = messages[0];
+      if (firstMessage && firstMessage.additional_kwargs && firstMessage.additional_kwargs.title) {
+        sessionMetadata.title = firstMessage.additional_kwargs.title;
+      }
     }
+
+    context.log(`Final session metadata to preserve: ${JSON.stringify(sessionMetadata, null, 2)}`);
 
     try {
       // Clear the history
       await chatHistory.clear();
       context.log('Chat history cleared');
+      
+      // CORREÇÃO 3: Restaurar o contexto da sessão IMEDIATAMENTE após clear
+      if (sessionContext && Object.keys(sessionContext).length > 0) {
+        await chatHistory.setContext(sessionContext);
+        context.log('Session context restored after clear');
+      }
       
       // Re-add filtered messages with preserved metadata
       for (let i = 0; i < filteredMessages.length; i++) {
@@ -236,6 +246,12 @@ export async function deleteMessage(request: HttpRequest, context: InvocationCon
         context.log(`Re-added message ${i + 1}/${filteredMessages.length}`);
       }
       
+      // CORREÇÃO 4: Garantir que o contexto da sessão seja preservado no final
+      if (sessionContext && Object.keys(sessionContext).length > 0) {
+        await chatHistory.setContext(sessionContext);
+        context.log('Final session context preservation completed');
+      }
+      
       context.log('All filtered messages re-added with preserved metadata');
       
     } catch (_updateError: unknown) {
@@ -251,6 +267,7 @@ export async function deleteMessage(request: HttpRequest, context: InvocationCon
       success: true, 
       deletedMessageId: messageId,
       remainingMessages: filteredMessages.length,
+      preservedContext: sessionContext,
       preservedMetadata: Object.keys(sessionMetadata)
     });
     
@@ -265,7 +282,6 @@ export async function deleteMessage(request: HttpRequest, context: InvocationCon
     return serviceUnavailable('Service temporarily unavailable. Please try again later.');
   }
 }
-
 app.http('chats-delete', {
   route: 'chats/{sessionId}',
   methods: ['DELETE'],

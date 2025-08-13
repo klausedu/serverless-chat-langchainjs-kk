@@ -29,55 +29,53 @@ export function getCitationUrl(citation: string): string {
   return `${apiBaseUrl}/api/documents/${citation}`;
 }
 
-export async function deleteMessage(messageId: string, sessionId: string, userId: string, apiUrl?: string) {
+// Substitua ou adicione esta função no arquivo api.js:
+
+export async function deleteMessage(messageId: string, sessionId: string, userId: string, apiUrl?: string): Promise<any> {
+  const baseUrl = apiUrl || import.meta.env.VITE_API_URL || '';
+  const url = `${baseUrl}/api/chats/${sessionId}/messages/${messageId}`;
+  
+  console.log('=== API DELETE MESSAGE ===');
+  console.log('URL:', url);
+  console.log('messageId:', messageId);
+  console.log('sessionId:', sessionId);
+  console.log('userId:', userId);
+  
   try {
-    // Use the provided apiUrl or fall back to apiBaseUrl
-    const baseUrl = apiUrl || apiBaseUrl;
-    
-    console.log(`Attempting to delete message ${messageId} from session ${sessionId} for user ${userId}`);
-    console.log(`Using base URL: ${baseUrl}`);
-    
-    const url = `${baseUrl}/api/chats/${sessionId}/messages/${messageId}`;
-    console.log(`DELETE request URL: ${url}`);
-    
-    const response = await fetch(url, {
+    const requestOptions = {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
-        // Add userId in header
         'X-User-Id': userId,
       },
-      // Send body with required data
-      body: JSON.stringify({
-        messageId: messageId,
-        sessionId: sessionId,
-        userId: userId
-      })
-    });
+      // Incluir userId no body como backup
+      body: JSON.stringify({ 
+        messageId, 
+        sessionId, 
+        userId 
+      }),
+    };
     
-    console.log(`Response status: ${response.status}`);
-    console.log(`Response statusText: ${response.statusText}`);
+    console.log('Request options:', JSON.stringify(requestOptions, null, 2));
+    
+    const response = await fetch(url, requestOptions);
+    
+    console.log('Response status:', response.status);
+    console.log('Response headers:', Object.fromEntries(response.headers.entries()));
     
     if (!response.ok) {
-      // Try to get more details from the response
-      let errorDetails = '';
-      try {
-        const errorText = await response.text();
-        errorDetails = errorText || 'No error details';
-        console.log(`Error response body: ${errorDetails}`);
-      } catch (e) {
-        console.log('Could not read error response body');
-      }
-      
-      throw new Error(`Failed to delete message: ${response.status} ${response.statusText}. Details: ${errorDetails}`);
+      const errorText = await response.text();
+      console.error('Error response text:', errorText);
+      throw new Error(`HTTP ${response.status}: ${errorText || response.statusText}`);
     }
     
     const result = await response.json();
-    console.log('Delete message response:', result);
+    console.log('Delete response:', result);
+    
     return result;
     
   } catch (error) {
-    console.error('Error deleting message:', error);
+    console.error('Delete message API error:', error);
     throw error;
   }
 }

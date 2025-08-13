@@ -113,8 +113,7 @@ export class ChatComponent extends LitElement {
   private generateUniqueId(): string {
     return '_' + Math.random().toString(36).substr(2, 9); // Generate a unique ID
   }
-
-// Adicione estes logs no método onSendClicked (após criar a mensagem do usuário):
+// 1. Primeiro, atualize o método onSendClicked no chat.ts para garantir que os IDs sejam consistentes:
 
 async onSendClicked(isRetry = false) {
   if (this.isLoading) {
@@ -122,17 +121,22 @@ async onSendClicked(isRetry = false) {
   }
 
   this.hasError = false;
-  const messageId = this.generateUniqueId();
+  let userMessageId;
 
   if (!isRetry) {
+    userMessageId = this.generateUniqueId();
     const userMessage = {
-      id: messageId,
+      id: userMessageId,
       content: this.question,
       role: 'user',
+      // Adicione additional_kwargs para consistência
+      additional_kwargs: {
+        messageId: userMessageId
+      }
     };
     
     console.log('=== CREATING USER MESSAGE ===');
-    console.log('Generated ID:', messageId);
+    console.log('Generated ID:', userMessageId);
     console.log('User message:', JSON.stringify(userMessage, null, 2));
     
     this.messages = [...this.messages, userMessage];
@@ -159,6 +163,10 @@ async onSendClicked(isRetry = false) {
       id: assistantMessageId,
       content: '',
       role: 'assistant',
+      // Adicione additional_kwargs para consistência
+      additional_kwargs: {
+        messageId: assistantMessageId
+      }
     };
     
     console.log('=== CREATING ASSISTANT MESSAGE ===');
@@ -185,13 +193,21 @@ async onSendClicked(isRetry = false) {
         this.sessionId = sessionId;
       }
       
-      // LOG IMPORTANT: Check if backend is sending different IDs
-      if (chunk.id || chunk.messageId || (chunk.context as any)?.messageId) {
-        console.log('=== CHUNK ID DEBUG ===');
-        console.log('Chunk ID:', chunk.id);
-        console.log('Chunk messageId:', chunk.messageId);
-        console.log('Context messageId:', (chunk.context as any)?.messageId);
-        console.log('Our assistant ID:', assistantMessageId);
+      // IMPORTANTE: Sincronizar o ID do backend se fornecido
+      const backendMessageId = chunk.id || chunk.messageId || (chunk.context as any)?.messageId;
+      if (backendMessageId && backendMessageId !== assistantMessageId) {
+        console.log('=== SYNCING MESSAGE ID FROM BACKEND ===');
+        console.log('Frontend ID:', assistantMessageId);
+        console.log('Backend ID:', backendMessageId);
+        
+        // Atualizar o ID da mensagem para corresponder ao backend
+        assistantMessage.id = backendMessageId;
+        assistantMessage.additional_kwargs = assistantMessage.additional_kwargs || {};
+        assistantMessage.additional_kwargs.messageId = backendMessageId;
+        
+        const updatedMessages = [...this.messages];
+        updatedMessages[assistantMessageIndex] = { ...assistantMessage };
+        this.messages = updatedMessages;
       }
     }
 
@@ -217,6 +233,98 @@ async onSendClicked(isRetry = false) {
   }
 }
 
+// 2. Atualize também o método renderMessage para usar a lógica de ID correta:
+
+protected renderMessage = (message: ParsedMessage, index: number) => {
+  const originalMessage = this.messages[index];
+  // Priorize additional_kwargs.messageId sobre id para consistência com o backend
+  const messageId = originalMessage?.additional_kwargs?.messageId || originalMessage?.id;
+  
+  console.log('=== RENDER MESSAGE DEBUG ===');
+  console.log('Index:', index);
+  console.log('Original message object:', {
+    id: originalMessage?.id,
+    additional_kwargs: originalMessage?.additional_kwargs,
+    role: originalMessage?.role,
+    content: originalMessage?.content?.substring(0, 50) + '...'
+  });
+  console.log('Available IDs:');
+  console.log('  - originalMessage.id:', originalMessage?.id);
+  console.log('  - originalMessage.additional_kwargs?.messageId:', originalMessage?.additional_kwargs?.messageId);
+  console.log('  - Final messageId chosen:', messageId);
+  console.log('Message role:', message.role);
+  
+  return html`
+    <div class="message ${message.role} animation">
+      <div class="message-body">
+        <div class="content">${message.html}</div>
+      </div>
+      <div class="message-role">
+        ${message.role === 'user' ? this.options.strings.user : this.options.strings.assistant}
+      </div>
+      <button class="delete-button" 
+        @click=${() => {
+          console.log("=== DELETE BUTTON CLICKED ===");
+          console.log("Message index:", index);
+          console.log("Message ID being passed:", messageId);
+          console.log("Original message at deletion:", JSON.stringify(originalMessage, null, 2));
+          console.log("Session ID:", this.sessionId);
+          console.log("User ID:", this.userId);
+          console.log("API URL:", this.options.apiUrl);
+          
+          if (!messageId) {
+            console.error("❌ MESSAGE ID IS UNDEFINED!");
+            alert("Cannot delete message: ID is undefined");
+            return;
+          }
+          
+          this.onDeleteMessage(messageId);
+        }}>✖️</button>
+    </div>
+  `;
+};
+
+// 3. Adicione um método para sincronizar mensagens carregadas do histórico:
+
+public loadSessionMessages(messages: AIChatMessage[]) {
+  console.log('=== LOADING SESSION MESSAGES ===');
+  console.log('Incoming messages:', messages);
+  
+  // Garantir que todas as mensagens tenham IDs consistentes
+  this.messages = messages.map((msg, index) => {
+    // Se a mensagem não tem additional_kwargs, crie
+    if (!msg.additional_kwargs) {
+      msg.additional_kwargs = {};
+    }
+    
+    // Se não tem messageId no additional_kwargs, use o id principal
+    if (!msg.additional_kwargs.messageId && msg.id) {
+      msg.additional_kwargs.messageId = msg.id;
+    }
+    
+    // Se não tem id principal, use o messageId do additional_kwargs
+    if (!msg.id && msg.additional_kwargs.messageId) {
+      msg.id = msg.additional_kwargs.messageId;
+    }
+    
+    // Se não tem nenhum ID, gere um novo
+    if (!msg.id && !msg.additional_kwargs.messageId) {
+      const newId = this.generateUniqueId();
+      msg.id = newId;
+      msg.additional_kwargs.messageId = newId;
+    }
+    
+    console.log(`Message ${index} after ID sync:`, {
+      id: msg.id,
+      messageId: msg.additional_kwargs.messageId,
+      role: msg.role
+    });
+    
+    return msg;
+  });
+  
+  this.fireMessagesUpdatedEvent();
+}
 
   override requestUpdate(name?: string, oldValue?: any) {
     if (name === 'messages') {
@@ -334,59 +442,75 @@ protected renderMessage = (message: ParsedMessage, index: number) => {
 
 
 
+// Substitua o método onDeleteMessage no componente chat.ts por esta versão:
 
 private async onDeleteMessage(messageId: string) {
+  console.log("=== DELETE MESSAGE FRONTEND ===");
   console.log("Message ID received:", messageId);
   console.log("Current Messages:", JSON.stringify(this.messages, null, 2));
+  console.log("Session ID:", this.sessionId);
+  console.log("User ID:", this.userId);
 
-  // Ensure the ID is defined
+  // Validações iniciais
   if (!messageId) {
     console.warn("Message ID is undefined");
+    alert("Cannot delete message: ID is undefined");
     return;
   }
 
-  // Ensure sessionId exists
   if (!this.sessionId) {
     console.warn("Session ID is required for message deletion");
+    alert("Session ID is missing. Please refresh the page and try again.");
     return;
   }
 
-  // Ensure userId exists
   if (!this.userId) {
     console.warn("User ID is required for message deletion");
     alert("User ID is missing. Please refresh the page and try again.");
     return;
   }
 
-  console.log(`Deleting message ${messageId} from session ${this.sessionId} for user ${this.userId}`);
+  // Backup das mensagens antes de deletar (para rollback em caso de erro)
+  const messagesBackup = [...this.messages];
 
-  // Update the state to remove the message immediately for responsive UI
-  this.messages = this.messages.filter((msg) => {
-    const msgId = msg.additional_kwargs?.messageId || msg.id;
-    return msgId !== messageId;
-  });
-
-  console.log('Remaining Messages after deletion:', JSON.stringify(this.messages, null, 2));
-
-  // Fire the messages updated event
-  this.fireMessagesUpdatedEvent();
-
-  // Call the backend API to persist the deletion
   try {
-    await deleteMessage(messageId, this.sessionId, this.userId, this.options.apiUrl);
-    console.log('Message successfully deleted from backend');
+    console.log(`Attempting to delete message ${messageId} from session ${this.sessionId} for user ${this.userId}`);
+
+    // Update the state to remove the message immediately for responsive UI
+    this.messages = this.messages.filter((msg) => {
+      const msgId = msg.additional_kwargs?.messageId || msg.id;
+      return msgId !== messageId;
+    });
+
+    console.log('Messages after optimistic deletion:', JSON.stringify(this.messages, null, 2));
+
+    // Fire the messages updated event
+    this.fireMessagesUpdatedEvent();
+
+    // Call the backend API to persist the deletion
+    const response = await deleteMessage(messageId, this.sessionId, this.userId, this.options.apiUrl);
+    
+    if (!response.success) {
+      throw new Error(response.error || 'Unknown error occurred');
+    }
+    
+    console.log('Message successfully deleted from backend:', response);
+    console.log('Preserved context:', response.preservedContext);
+    console.log('Remaining messages count:', response.remainingMessages);
+
   } catch (error) {
     console.error('Failed to delete message from backend:', error);
     
-    // Show error to user
-    alert(`Failed to delete message: ${error.message || error}`);
+    // Rollback: Restore the original messages
+    console.log('Rolling back optimistic deletion...');
+    this.messages = messagesBackup;
+    this.fireMessagesUpdatedEvent();
     
-    // Optionally, you could revert the frontend state here if the backend call fails
-    // For now, we'll keep the optimistic update approach since the message is already gone from UI
+    // Show detailed error to user
+    const errorMessage = error.message || error.toString() || 'Unknown error';
+    alert(`Failed to delete message: ${errorMessage}\n\nThe message has been restored.`);
   }
 }
-
-
 
   protected renderError = () => html`
     <div class="message assistant error">
